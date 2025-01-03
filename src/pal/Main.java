@@ -42,6 +42,7 @@ public class Main {
     public static List<Long> generatePrimes(int Pmax) {
         boolean[] isPrime = new boolean[Pmax + 1];
         for (int i = 2; i <= Pmax; i++) isPrime[i] = true;
+
         for (int p = 2; p * p <= Pmax; p++) {
             if (isPrime[p]) {
                 for (int i = p * p; i <= Pmax; i += p) {
@@ -49,6 +50,7 @@ public class Main {
                 }
             }
         }
+
         List<Long> primes = new ArrayList<>();
         for (int i = 5; i <= Pmax; i++) {
             if (isPrime[i]) primes.add((long) i);
@@ -58,26 +60,22 @@ public class Main {
 
     public static List<Long> computePossibleMs(List<Long> primes, long Mmax) {
         List<Long> possibleMs = new ArrayList<>();
-        computeMsRecursive(primes, 0, 1, Mmax, possibleMs);
+        possibleMs.add(1L); // Start with 1 (base case for product)
+
+        for (long prime : primes) {
+            List<Long> newMs = new ArrayList<>();
+            for (long m : possibleMs) {
+                long square = prime * prime;
+                if (m > Mmax / square) continue; // Prevent overflow
+                long newM = m * square;
+                if (newM <= Mmax) newMs.add(newM);
+            }
+            possibleMs.addAll(newMs);
+        }
+
         return possibleMs;
     }
 
-    private static void computeMsRecursive(List<Long> primes, int index, long currentProduct, long Mmax, List<Long> possibleMs) {
-        // Base case: If the current product squared exceeds Mmax, stop recursion
-        long currentM = currentProduct * currentProduct;
-        if (currentM > Mmax) return;
-
-        // Add the valid M to the list
-        if (currentM > 0) {
-            possibleMs.add(currentM);
-        }
-
-        // Recursively include more primes
-        for (int i = index; i < primes.size(); i++) {
-            if (currentProduct > Mmax / primes.get(i)) break; // Avoid overflow
-            computeMsRecursive(primes, i + 1, currentProduct * primes.get(i), Mmax, possibleMs);
-        }
-    }
 
     // Compute A using modular inverse
     public static long computeA(long[] sequence, long M) {
@@ -122,10 +120,9 @@ public class Main {
     public static boolean isValidLCG(long A, long C, long M, long[] sequence) {
         long x = sequence[0];
         for (int i = 1; i < sequence.length; i++) {
-            // Using the optimized multiplyMod method here
-            x = multiplyMod(A, x, M); // Efficient multiplication with modulo
-            x = (x + C) % M; // Adding C and applying modulo
-            if (x != sequence[i]) return false;
+            x = multiplyMod(A, x, M);
+            x = (x + C) % M;
+            if (x != sequence[i]) return false; // Early exit
         }
         return true;
     }
@@ -133,14 +130,14 @@ public class Main {
     // Modular multiplication with overflow prevention
     public static long multiplyMod(long a, long b, long m) {
         long result = 0;
-        a = a % m;
+        a %= m;
 
         while (b > 0) {
-            if (b % 2 == 1) {
+            if ((b & 1) == 1) {
                 result = (result + a) % m;
             }
-            a = (a * 2) % m;
-            b /= 2;
+            a = (a << 1) % m;
+            b >>= 1;
         }
 
         return result;
@@ -149,9 +146,10 @@ public class Main {
     // Compute GCD of two numbers
     public static long gcd(long a, long b) {
         while (b != 0) {
-            long temp = b;
-            b = a % b;
-            a = temp;
+            a %= b;
+            long temp = a;
+            a = b;
+            b = temp;
         }
         return a;
     }
