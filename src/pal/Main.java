@@ -10,7 +10,7 @@ public class Main {
     public static void main(String[] args) throws IOException {
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 
-        // Read the input
+        // Read input
         String[] firstLine = br.readLine().split(" ");
         int Pmax = Integer.parseInt(firstLine[0]);
         long Mmax = Long.parseLong(firstLine[1]);
@@ -22,28 +22,23 @@ public class Main {
             sequence[i] = Long.parseLong(secondLine[i]);
         }
 
-        // Generate all prime numbers up to Pmax
+        // Generate primes up to Pmax
         List<Long> primes = generatePrimes(Pmax);
-
-        // Compute all possible values of M
         List<Long> possibleMs = computePossibleMs(primes, Mmax);
 
-        // Determine the parameters (A, C, M)
+        // Try each possible M
         for (long M : possibleMs) {
-            for (long A = 1; A < M; A++) {
-                if (!isValidA(A, M, primes)) continue;
-                for (long C = 1; C < M; C++) {
-                    if (gcd(C, M) != 1) continue;
-                    if (isValidLCG(A, C, M, sequence)) {
-                        System.out.println(A + " " + C + " " + M);
-                        return;
-                    }
-                }
+            long A = computeA(sequence, M);
+            if (A == -1 || !isValidA(A, M, primes)) continue;
+            long C = computeC(sequence, A, M);
+            if (gcd(C, M) == 1 && isValidLCG(A, C, M, sequence)) {
+                System.out.println(A + " " + C + " " + M);
+                return;
             }
         }
     }
 
-    // Generate primes up to Pmax using the Sieve of Eratosthenes
+    // Generate primes up to Pmax using Sieve of Eratosthenes
     public static List<Long> generatePrimes(int Pmax) {
         boolean[] isPrime = new boolean[Pmax + 1];
         for (int i = 2; i <= Pmax; i++) isPrime[i] = true;
@@ -61,7 +56,7 @@ public class Main {
         return primes;
     }
 
-    // Compute all valid values of M
+    // Compute all possible values of M
     public static List<Long> computePossibleMs(List<Long> primes, long Mmax) {
         List<Long> possibleMs = new ArrayList<>();
         int numPrimes = primes.size();
@@ -82,7 +77,27 @@ public class Main {
         return possibleMs;
     }
 
-    // Check if A satisfies the constraints
+    // Compute A using modular inverse
+    public static long computeA(long[] sequence, long M) {
+        long x0 = sequence[0];
+        long x1 = sequence[1];
+        long x2 = sequence[2];
+        long delta1 = (x1 - x0 + M) % M;
+        long delta2 = (x2 - x1 + M) % M;
+
+        long inv = multiplicativeInverse(delta1, M);
+        if (inv == -1) return -1;  // Skip if inverse doesn't exist
+        return (inv * delta2) % M;
+    }
+
+    // Compute C from A
+    public static long computeC(long[] sequence, long A, long M) {
+        long x0 = sequence[0];
+        long x1 = sequence[1];
+        return (x1 - A * x0 % M + M) % M;
+    }
+
+    // Check if A satisfies conditions
     public static boolean isValidA(long A, long M, List<Long> primes) {
         long Aminus1 = A - 1;
         for (long prime : primes) {
@@ -91,7 +106,7 @@ public class Main {
         return M % 4 != 0 || Aminus1 % 4 == 0;
     }
 
-    // Check if the LCG parameters generate the correct sequence
+    // Validate if the generated LCG sequence matches input
     public static boolean isValidLCG(long A, long C, long M, long[] sequence) {
         long x = sequence[0];
         for (int i = 1; i < sequence.length; i++) {
@@ -109,5 +124,20 @@ public class Main {
             a = temp;
         }
         return a;
+    }
+
+    // Modular multiplicative inverse (Extended Euclidean Algorithm)
+    public static long multiplicativeInverse(long a, long modulus) {
+        long s = 0, r = modulus, old_s = 1, old_r = a;
+        while (r != 0) {
+            long quotient = old_r / r;
+            long temp = r;
+            r = old_r - quotient * r;
+            old_r = temp;
+            temp = s;
+            s = old_s - quotient * s;
+            old_s = temp;
+        }
+        return old_r > 1 ? -1 : (old_s < 0 ? old_s + modulus : old_s);
     }
 }
