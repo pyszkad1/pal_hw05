@@ -56,28 +56,27 @@ public class Main {
         return primes;
     }
 
-    // Compute all possible values of M based on prime squares
     public static List<Long> computePossibleMs(List<Long> primes, long Mmax) {
         List<Long> possibleMs = new ArrayList<>();
-        int numPrimes = primes.size();
-        int limit = 1 << numPrimes;
-
-        // Iterate over all subsets of primes to calculate squared products
-        for (int mask = 1; mask < limit; mask++) {
-            long product = 1;
-            for (int i = 0; i < numPrimes; i++) {
-                if ((mask & (1 << i)) != 0) {
-                    product *= primes.get(i);
-                    if (product > Math.sqrt(Mmax)) break;
-                }
-            }
-            long M = product * product;
-
-            if (M <= Mmax && M > 0) {
-                possibleMs.add(M);
-            }
-        }
+        computeMsRecursive(primes, 0, 1, Mmax, possibleMs);
         return possibleMs;
+    }
+
+    private static void computeMsRecursive(List<Long> primes, int index, long currentProduct, long Mmax, List<Long> possibleMs) {
+        // Base case: If the current product squared exceeds Mmax, stop recursion
+        long currentM = currentProduct * currentProduct;
+        if (currentM > Mmax) return;
+
+        // Add the valid M to the list
+        if (currentM > 0) {
+            possibleMs.add(currentM);
+        }
+
+        // Recursively include more primes
+        for (int i = index; i < primes.size(); i++) {
+            if (currentProduct > Mmax / primes.get(i)) break; // Avoid overflow
+            computeMsRecursive(primes, i + 1, currentProduct * primes.get(i), Mmax, possibleMs);
+        }
     }
 
     // Compute A using modular inverse
