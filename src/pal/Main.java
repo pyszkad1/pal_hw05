@@ -56,11 +56,13 @@ public class Main {
         return primes;
     }
 
-    // Compute all possible values of M
+    // Compute all possible values of M based on prime squares
     public static List<Long> computePossibleMs(List<Long> primes, long Mmax) {
         List<Long> possibleMs = new ArrayList<>();
         int numPrimes = primes.size();
         int limit = 1 << numPrimes;
+
+        // Iterate over all subsets of primes to calculate squared products
         for (int mask = 1; mask < limit; mask++) {
             long product = 1;
             for (int i = 0; i < numPrimes; i++) {
@@ -70,7 +72,8 @@ public class Main {
                 }
             }
             long M = product * product;
-            if (M <= Mmax) {
+
+            if (M <= Mmax && M > 0) {
                 possibleMs.add(M);
             }
         }
@@ -79,28 +82,38 @@ public class Main {
 
     // Compute A using modular inverse
     public static long computeA(long[] sequence, long M) {
-        long x0 = sequence[0];
-        long x1 = sequence[1];
-        long x2 = sequence[2];
-        long delta1 = (x1 - x0 + M) % M;
-        long delta2 = (x2 - x1 + M) % M;
+        long x1 = sequence[0];
+        long x2 = sequence[1];
+        long x3 = sequence[2];
 
+        // Compute differences
+        long delta1 = (x2 - x1 + M) % M;
+        long delta2 = (x3 - x2 + M) % M;
+
+        // Compute modular inverse of delta1 modulo M
         long inv = multiplicativeInverse(delta1, M);
         if (inv == -1) return -1;  // Skip if inverse doesn't exist
-        return (inv * delta2) % M;
+
+        // Compute A
+        long A = multiplyMod(delta2, inv, M);
+        return A;
     }
 
-    // Compute C from A
     public static long computeC(long[] sequence, long A, long M) {
-        long x0 = sequence[0];
-        long x1 = sequence[1];
-        return (x1 - A * x0 % M + M) % M;
+        long x1 = sequence[0];
+        long x2 = sequence[1];
+
+        // Compute C
+        long C = (x2 - multiplyMod(A, x1, M) + M) % M;
+        return C;
     }
 
-    // Check if A satisfies conditions
+    // Check if A satisfies conditions based on prime factorization of M
     public static boolean isValidA(long A, long M, List<Long> primes) {
+        if (A < 0) return false;
         long Aminus1 = A - 1;
         for (long prime : primes) {
+
             if (M % (prime * prime) == 0 && Aminus1 % prime != 0) return false;
         }
         return M % 4 != 0 || Aminus1 % 4 == 0;
@@ -110,10 +123,28 @@ public class Main {
     public static boolean isValidLCG(long A, long C, long M, long[] sequence) {
         long x = sequence[0];
         for (int i = 1; i < sequence.length; i++) {
-            x = (A * x + C) % M;
+            // Using the optimized multiplyMod method here
+            x = multiplyMod(A, x, M); // Efficient multiplication with modulo
+            x = (x + C) % M; // Adding C and applying modulo
             if (x != sequence[i]) return false;
         }
         return true;
+    }
+
+    // Modular multiplication with overflow prevention
+    public static long multiplyMod(long a, long b, long m) {
+        long result = 0;
+        a = a % m;
+
+        while (b > 0) {
+            if (b % 2 == 1) {
+                result = (result + a) % m;
+            }
+            a = (a * 2) % m;
+            b /= 2;
+        }
+
+        return result;
     }
 
     // Compute GCD of two numbers
